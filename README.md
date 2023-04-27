@@ -12,8 +12,8 @@ entry for the token). This is identical to what
 Additionally, in the following modifications can be performed by setting a specific flag:
 
 1. Replace words based on entries in a replacement lexicon. The replacement file
-  must have a tab-separated structure, where every line looks like this:
-  `original-type   new-type` (See the project `oldorth-list` for an example of
+  must have a tab-separated structure, where every line looks like this:  
+  `original-type{tab}new-type` (See the project `oldorth-list` for an example of
   how to compile such a lexicon for replacement of old orthography (pre-1996) by
   modern orthography on a type level ("dass" instead of "daß", etc.).)
 
@@ -49,7 +49,7 @@ optional arguments:
 
 ```
 
-Example call for an individual file:
+### Example call for an individual file:
 
 ```bash
 source .venv/bin/activate
@@ -57,10 +57,15 @@ source .venv/bin/activate
 python3 serialize.py -t normalized --replace-tokens=/home/bracke/code/oldorth-list/out/dta-replacements.txt --remove-unwanted-spaces --replace-underscores /home/bracke/data/dta/ddc_tabs/dtak/corpus-tabs.d/birken_gespraechspiel_1665.TEI-P5.tabs > birken_gespraechspiel_1665.norm.txt
 ```
 
-Or call the script `serialize-dta.sh` for multiple files. Change the values for
-the variables `DTAPART` and `TASTE` at the top, if necessary.
+### Bash script for multiple files
 
+Note: Change the values for the variables `DTAPART` and `TASTE` at the top of
+the script for the desired version (original vs. normal), part of DTA (DTAK vs.
+DTAE) and paths on your machine.
 
+```bash
+bash serialize-dta.sh
+```
 
 ## Requirements
 
