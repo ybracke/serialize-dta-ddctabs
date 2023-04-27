@@ -14,10 +14,15 @@ def parse_arguments(arguments: Optional[List[str]] = None) -> argparse.Namespace
         "-t", "--taste", type=str, help="Taste to output", choices=tastes, required=True
     )
     parser.add_argument(
-        "--replace",
+        "--replace-tokens",
         metavar="LEXICON",
         type=str,
         help="Replace words based on entries in LEXICON (tab-separated)",
+    )
+    parser.add_argument(
+        "--replace-underscores",
+        help="Replace intra-word underscores by spaces ('musst_du' -> 'musst du')",
+        action="store_true",
     )
     parser.add_argument(
         "--remove-unwanted-spaces",
@@ -34,10 +39,15 @@ def main(arguments: Optional[List[str]] = None) -> None:
     args = parse_arguments(arguments)
 
     # (2) Load replacement lexicon
-    #TODO
+    repl_lex = {}
+    if args.replace_tokens:
+        with open(args.replace_tokens, "r", encoding="utf-8") as fh:
+            lines = fh.readlines()
+            repl_lex = dict([tuple(line.strip().split("\t")) for line in lines])
 
     # (3) Whether to remove unwanted spaces
-    #TODO
+    if args.remove_unwanted_spaces:
+        prev_token = ""
 
     # (4) Do more
     columns = {}  # column tab index
@@ -46,12 +56,16 @@ def main(arguments: Optional[List[str]] = None) -> None:
     with open(args.file, "r", encoding="utf8") as fh:
         for line in fh:
             line = line.strip()
+
+            # Metadata line
             if line.startswith("%%$DDC:index["):
                 match = re.split(" |=", line.strip())
                 try:
                     i = int(re.search(r"\d+", match[0])[0])
-                except:
-                    raise Exception("Couldn't parse ddc-tabs input file correctly.")
+                except ValueError as e:
+                    raise ValueError(
+                        "Couldn't parse ddc-tabs input file correctly."
+                    ) from e
                 long = match[1]
                 short = match[2]
                 if long == "Token" or short == "w":
@@ -65,15 +79,39 @@ def main(arguments: Optional[List[str]] = None) -> None:
                 elif long == "WordSept" or short == "ws":
                     columns["ws"] = i
 
+            # Token line
             elif not line.startswith("%%") and line:
                 attrs = line.split("\t")
                 sep = "" if int(attrs[columns["ws"]]) == 0 or not in_s else " "
                 token = attrs[columns[args.taste]]
+
+                # Optional: overwrite the token with replacement from lexicon
+                if args.replace_tokens:
+                    token = repl_lex.get(token, token)
+
+                # Optional: replace intra-word underscores by spaces
+                if args.replace_underscores:
+                    token = re.sub(r"(\w)_(\w)", r"\1 \2", token)
+
+                # Optional: Remove the seperator if the following condition is met
+                # previous token is capitalized AND ends with "-" AND current token is capitalized
+                if args.remove_unwanted_spaces:
+                    if (
+                        (prev_token)
+                        and (prev_token[-1] == "-")
+                        and prev_token[0].isupper()
+                        and token[0].isupper()
+                    ):
+                        sep = ""
+
                 print(f"{sep}{token}", end="")
                 in_s = True
+                prev_token = token
 
+            # Empty line
             elif line.strip() == "":
                 in_s = False
+                prev_token = ""
                 print()
 
     return None
